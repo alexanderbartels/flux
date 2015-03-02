@@ -195,10 +195,12 @@ func removeModifier(f *Flux, modifier string) (*Flux) {
 }
 
 func getLastSegmentKey(f *Flux) (int) {
+	// TODO implement me
 	return 0
 }
 
 func replaceQuantifierByKey(f *Flux, key int, replacement string) (*Flux) {
+	// TODO implement me
 	return f
 }
 
