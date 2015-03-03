@@ -7,94 +7,107 @@ import (
 
 func TestCompile(t *testing.T) {
 	regex := NewFlux()
-	assertEquals(t, regex.Compile(), "")
+	assertEquals(t, regex.String(), "")
+
+	res, err := regex.Compile()
+	assertNoError(t, err)
+	assertEquals(t, regex.String(), res.String())
+	assertEquals(t, regex.String(), regex.MustCompile().String())
+
+	regex = regex.Any("abcdef")
+	assertEquals(t, regex.String(), "([abcdef])")
+
+	res, err = regex.Compile()
+	assertNoError(t, err)
+	assertEquals(t, regex.String(), res.String())
+	assertEquals(t, regex.String(), regex.MustCompile().String())
 }
 
 func TestAddPrefix(t *testing.T) {
 	regex := NewFlux().StartOfLine()
-	assertEquals(t, regex.Compile(), "^")
+	assertEquals(t, regex.String(), "^")
 }
 
 
 func TestAddSuffix(t *testing.T) {
 	regex := NewFlux().EndOfLine()
-	assertEquals(t, regex.Compile(), "$")
+	assertEquals(t, regex.String(), "$")
 }
 
 func TestModifiers(t *testing.T) {
 	regex := NewFlux().Multiline()
-	assertEquals(t, regex.Compile(), "(?m)")
+	assertEquals(t, regex.String(), "(?m)")
 
 	regex.IgnoreCase()
-	assertEquals(t, regex.Compile(), "(?mi)")
+	assertEquals(t, regex.String(), "(?mi)")
 
 	regex = NewFlux().Multiline().IgnoreCase().MatchNewLine()
-	assertEquals(t, regex.Compile(), "(?mis)")
+	assertEquals(t, regex.String(), "(?mis)")
 }
 
 func TestThen(t *testing.T) {
 	regex := NewFlux().Then("required")
-	assertEquals(t, regex.Compile(), "(required)")
+	assertEquals(t, regex.String(), "(required)")
 }
 
 func TestMaybe(t *testing.T) {
 	regex := NewFlux().Maybe("optional")
-	assertEquals(t, regex.Compile(), "(optional)?")
+	assertEquals(t, regex.String(), "(optional)?")
 }
 
 func TestAny(t *testing.T) {
 	regex := NewFlux().Any("abc")
-	assertEquals(t, regex.Compile(), "([abc])")
+	assertEquals(t, regex.String(), "([abc])")
 }
 
 func TestAnything(t *testing.T) {
 	regex := NewFlux().Anything()
-	assertEquals(t, regex.Compile(), "(.*)")
+	assertEquals(t, regex.String(), "(.*)")
 }
 
 func TestAnythingBut(t *testing.T) {
 	regex := NewFlux().AnythingBut("BUT")
-	assertEquals(t, regex.Compile(), "([^BUT]*)")
+	assertEquals(t, regex.String(), "([^BUT]*)")
 }
 
 func TestEither(t *testing.T) {
 	regex := NewFlux().Either("one", "two", "three")
-	assertEquals(t, regex.Compile(), "(one|two|three)")
+	assertEquals(t, regex.String(), "(one|two|three)")
 }
 
 func TestOrTry(t *testing.T) {
 	regex := NewFlux().StartOfLine().Find("dev.").Any("abc").OrTry().Maybe("live.").EndOfLine()
-	assertEquals(t, regex.Compile(), "^((dev\\.)([abc]))|((live\\.)?)$")
+	assertEquals(t, regex.String(), "^((dev\\.)([abc]))|((live\\.)?)$")
 
 	regex = regex.IgnoreCase()
-	assertEquals(t, regex.Compile(), "(?i)^((dev\\.)([abc]))|((live\\.)?)$")
+	assertEquals(t, regex.String(), "(?i)^((dev\\.)([abc]))|((live\\.)?)$")
 }
 
 func TestRange(t *testing.T) {
 	regex := NewFlux().Range("a", "z", "0", "9")
-	assertEquals(t, regex.Compile(), "([a-z0-9])")
+	assertEquals(t, regex.String(), "([a-z0-9])")
 }
 
 
 func TestLength(t *testing.T) {
 	regex := NewFlux().Word().Length(1, 5)
-	assertEquals(t, regex.Compile(), "(\\w{1,5})")
+	assertEquals(t, regex.String(), "(\\w{1,5})")
 
 	regex = NewFlux().Letters()
-	assertEquals(t, regex.Compile(), "([a-zA-Z]+)")
+	assertEquals(t, regex.String(), "([a-zA-Z]+)")
 	regex = regex.Length(1, 5)
-	assertEquals(t, regex.Compile(), "([a-zA-Z]{1,5})")
+	assertEquals(t, regex.String(), "([a-zA-Z]{1,5})")
 }
 
 func TestMin(t *testing.T) {
 	regex := NewFlux().Word().Min(1)
-	assertEquals(t, regex.Compile(), "(\\w{1})")
+	assertEquals(t, regex.String(), "(\\w{1})")
 }
 
 // alias for Min(1)
 func TestOnce(t *testing.T) {
 	regex := NewFlux().Word().Once()
-	assertEquals(t, regex.Compile(), "(\\w{1})")
+	assertEquals(t, regex.String(), "(\\w{1})")
 }
 
 func TestSimpleMatch(t *testing.T) {
@@ -130,6 +143,18 @@ func TestPhoneMatchReplace(t *testing.T) {
 
 	repl :=  regex.Replace(phone, "($2) $5-$7" ) // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
 	assertEquals(t, repl, "(612) 424-0013" );
+}
+
+func TestUrlMatchAndReplace(t *testing.T) {
+	regex := NewFlux().StartOfLine().Find("http").Maybe("s").Then("://").Maybe("www.").AnythingBut(".").Either(".co", ".com", ".de").IgnoreCase().EndOfLine();
+	assertEquals(t, regex.String(), "(?i)^(http)(s)?(://)(www\\.)?([^\\.]*)(.co|.com|.de)$")
+
+	match, err := regex.Match("http://selvinortiz.com")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	repl := regex.Replace("http://selvinortiz.com", "$5$6")
+	assertEquals(t, repl, "selvinortiz.com")
 }
 
 func assertEquals(t *testing.T, actual, expected string) {

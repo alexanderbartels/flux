@@ -16,8 +16,20 @@ type Flux struct {
 	modifiers []string
 }
 
-// Compiles prefixes/pattern/suffixes/modifiers into a regular expression
-func (f *Flux) Compile() string {
+// regexp.Compile
+func (f *Flux) Compile() (*regexp.Regexp, error) {
+	return regexp.Compile(f.String())
+}
+
+// To reuse the compiled regexp
+// regexp.MustCompile
+func (f *Flux) MustCompile() (*regexp.Regexp) {
+	return regexp.MustCompile(f.String())
+}
+
+// concatenate prefixes/pattern/suffixes/modifiers into a regular expression
+// prints the current String representation from the regex
+func (f *Flux) String() string {
 	pattern   := strings.Join(f.pattern, "")
 	prefixes  := strings.Join(f.prefixes, "")
 	suffixes  := strings.Join(f.suffixes, "")
@@ -31,11 +43,11 @@ func (f *Flux) Compile() string {
 }
 
 func (f *Flux) Replace(src, repl string) string {
-	return regexp.MustCompile(f.Compile()).ReplaceAllString(src, repl)
+	return regexp.MustCompile(f.String()).ReplaceAllString(src, repl)
 }
 
 func (f *Flux) Match(value string) (bool, error) {
-	r, err := regexp.Compile(f.Compile())
+	r, err := regexp.Compile(f.String())
 
 	if err == nil {
 		return r.MatchString(value), nil
