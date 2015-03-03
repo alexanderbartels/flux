@@ -120,6 +120,18 @@ func TestMatch(t *testing.T) {
 	assertTrue(t, match) // now it should be true
 }
 
+func TestPhoneMatchReplace(t *testing.T) {
+	phone := "6124240013"
+	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3,3).Maybe(")").Maybe(" ").Digits().Length(3,3).Maybe("-").Digits().Length(4,4).EndOfLine()
+
+	match, err := regex.Match(phone)
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	repl :=  regex.Replace(phone, "($2) $5-$7" ) // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
+	assertEquals(t, repl, "(612) 424-0013" );
+}
+
 func assertEquals(t *testing.T, actual, expected string) {
 	if expected == actual {
 		t.Log("Assertion passed.")

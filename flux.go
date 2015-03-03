@@ -30,6 +30,10 @@ func (f *Flux) Compile() string {
 	return plainRegex
 }
 
+func (f *Flux) Replace(src, repl string) string {
+	return regexp.MustCompile(f.Compile()).ReplaceAllString(src, repl)
+}
+
 func (f *Flux) Match(value string) (bool, error) {
 	r, err := regexp.Compile(f.Compile())
 
