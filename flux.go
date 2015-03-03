@@ -23,7 +23,20 @@ func (f *Flux) Compile() string {
 	suffixes  := strings.Join(f.suffixes, "")
 	modifiers := strings.Join(f.modifiers, "")
 
-	return fmt.Sprintf("/%s%s%s/%s", prefixes, pattern, suffixes, modifiers)
+	plainRegex := fmt.Sprintf("%s%s%s", prefixes, pattern, suffixes)
+	if len(modifiers) > 0 {
+		plainRegex = fmt.Sprintf("(?%s)%s", modifiers, plainRegex)
+	}
+	return plainRegex
+}
+
+func (f *Flux) Match(value string) (bool, error) {
+	r, err := regexp.Compile(f.Compile())
+
+	if err == nil {
+		return r.MatchString(value), nil
+	}
+	return false, err
 }
 
 // Clears all pattern components to create a fresh expression
@@ -40,9 +53,11 @@ func (f *Flux) RawGroup(value string) (*Flux) {
 	return add(f, value, "(%s)")
 }
 
+// alias for Min(1)
 func (f *Flux) Once() (*Flux) {
 	return f.Length(1, 0)
 }
+
 func (f *Flux) Min(min int) (*Flux) {
 	return f.Length(min, min - 1)
 }
@@ -155,10 +170,10 @@ func (f *Flux) Digits() (*Flux) {
 
 // experimental...
 // This is bound to change
-func (f *Flux) OrTry(value string) (*Flux) {
+func (f *Flux) OrTry() (*Flux) {
 	addPrefix(f, "(")
 	addSuffix(f, ")")
-	return raw(f, value, ")|((%s)")
+	return raw(f, "", ")|(%s")
 }
 
 // Creates a range character class
