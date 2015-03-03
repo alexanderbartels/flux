@@ -7,6 +7,8 @@ import (
 	"regexp"
 )
 
+// TODO add something like a toString() Method
+
 type Flux struct {
 	pattern   []string
 	prefixes  []string
@@ -15,7 +17,7 @@ type Flux struct {
 }
 
 // Compiles prefixes/pattern/suffixes/modifiers into a regular expression
-func (f *Flux) Compile() {
+func (f *Flux) Compile() string {
 	pattern   := strings.Join(f.pattern, "")
 	prefixes  := strings.Join(f.prefixes, "")
 	suffixes  := strings.Join(f.suffixes, "")
@@ -45,10 +47,6 @@ func (f *Flux) Min(min int) (*Flux) {
 	return f.Length(min, min - 1)
 }
 
-func (f *Flux) Max(max int) (*Flux) {
-	return f.Length(max, max)
-}
-
 func (f *Flux) Length(min, max int) (*Flux) {
 	lastSegmentKey := getLastSegmentKey(f)
 	var lengthPattern string
@@ -67,22 +65,27 @@ func (f *Flux) Length(min, max int) (*Flux) {
 //--------------------------------------------------------------------------------
 // MODIFIERS
 //--------------------------------------------------------------------------------
+// Helper for the ^ prefix
 func (f *Flux) StartOfLine() (*Flux) {
-	return addPrefix(f, "")
+	return addPrefix(f, "^")
 }
 
+// Helper for the $ suffix
 func (f *Flux) EndOfLine() (*Flux) {
 	return addSuffix(f, "$")
 }
 
+// Adds a modifier to ignore cases
 func (f *Flux) IgnoreCase() (*Flux) {
 	return addModifier(f, "i")
 }
 
+// Removes the 'm' modifier if it exists
 func (f *Flux) OneLine() (*Flux) {
 	return removeModifier(f, "m")
 }
 
+// Adds the 'm' modifier
 func (f *Flux) Multiline() (*Flux) {
 	return addModifier(f, "m")
 }
@@ -94,30 +97,38 @@ func (f *Flux) MatchNewLine() (*Flux) {
 //--------------------------------------------------------------------------------
 // @=LANGUAGE
 //--------------------------------------------------------------------------------
+// Alias to Flux#then
 func (f *Flux) Find(value string) (*Flux) {
 	return f.Then(value)
 }
 
+// Adds a search parameter
 func (f *Flux) Then(value string) (*Flux) {
 	return add(f, value, "(%s)")
 }
 
+// Optional search parameter
 func (f *Flux) Maybe(value string) (*Flux) {
 	return add(f, value, "(%s)?")
 }
 
+// Takes multiple arguments are creates an OR list.
+// Output would be one|two|three etc
 func (f *Flux) Either(values ...string) (*Flux) {
 	return raw(f, strings.Join(values, "|"), "(%s)")
 }
 
+// Creates a [%s] search param
 func (f *Flux) Any(value string) (*Flux) {
 	return add(f, value, "([%s])")
 }
 
+// Adds a wildcard parameter
 func (f *Flux) Anything() (*Flux) {
 	return raw(f, ".*", "(%s)")
 }
 
+// Matches anything but the given arguments
 func (f *Flux) AnythingBut(value string) (*Flux) {
 	return add(f, value, "([^%s]*)")
 }
@@ -142,17 +153,38 @@ func (f *Flux) Digits() (*Flux) {
 	return raw(f, "(\\d+)", "%s")
 }
 
+// experimental...
+// This is bound to change
 func (f *Flux) OrTry(value string) (*Flux) {
 	addPrefix(f, "(")
 	addSuffix(f, ")")
 	return raw(f, value, ")|((%s)")
 }
 
-// TODO add range function
+// Creates a range character class
+// You can create a-z0-9 by calling Flux.range("a", "z", "0", "9")
+func (f *Flux) Range(values ...string) (*Flux) {
+	// validate pramas
+	if len(values) % 2 != 0 {
+		return f
+	}
 
-func NewFlux() Flux {
-	return Flux{}
+	ranges := []string{}
+	for i := 1; i < len(values); i += 2 {
+			ranges = append(ranges, fmt.Sprintf("%s-%s", values[i - 1], values[i]))
+	}
+	return raw(f, strings.Join(ranges, ""), "([%s])")
 }
+
+// creates a new Flux instance
+func NewFlux() *Flux {
+	newFlux := Flux{}
+	return &newFlux
+}
+
+//--------------------------------------------------------------------------------
+// HELPER FUNCTIONS
+//--------------------------------------------------------------------------------
 
 func add(f *Flux, value, format string) (*Flux) {
 	f.pattern = append(f.pattern, fmt.Sprintf(format, regexp.QuoteMeta(value)))
@@ -195,13 +227,33 @@ func removeModifier(f *Flux, modifier string) (*Flux) {
 }
 
 func getLastSegmentKey(f *Flux) (int) {
-	// TODO implement me
-	return 0
+	return len(f.pattern) - 1
 }
 
 func replaceQuantifierByKey(f *Flux, key int, replacement string) (*Flux) {
-	// TODO implement me
+	subject := f.pattern[key]
+	replacementPattern := "%s%s"
+
+	if strings.LastIndex(subject, ")") != -1 {
+		subject = strings.TrimRight(subject, ")")
+		replacementPattern += ")"
+	}
+
+	subject = removeQuantifier(f, subject)
+	f.pattern[key] = fmt.Sprintf(replacementPattern, subject, replacement);
 	return f
+
+}
+
+func removeQuantifier(f *Flux, pattern string) string {
+	if strings.LastIndex(pattern, "+") != -1 && strings.LastIndex(pattern, "\\+") == -1 {
+		return strings.TrimRight(pattern, "+")
+	} else if strings.LastIndex(pattern, "*") != -1 && strings.LastIndex(pattern, "\\*") == -1 {
+		return strings.TrimRight(pattern, "*")
+	} else if strings.LastIndex(pattern, "?") != -1 && strings.LastIndex(pattern, "\\?") == -1 {
+		return strings.TrimRight(pattern, "?")
+	}
+	return pattern
 }
 
 // checks if the given string is in the given slice
