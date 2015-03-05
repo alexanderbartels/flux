@@ -69,6 +69,11 @@ func (f *Flux) RawGroup(value string) (*Flux) {
 	return add(f, value, "(%s)")
 }
 
+//very experimental
+func (f *Flux) NamedGroup(name, value string) (*Flux) {
+	return raw(f, value, fmt.Sprintf("(?P<%s>%s)", name, "%s"))
+}
+
 // alias for Min(1)
 func (f *Flux) Once() (*Flux) {
 	return f.Length(1, 0)
