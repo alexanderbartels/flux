@@ -48,11 +48,6 @@ func TestModifiers(t *testing.T) {
 func TestNamedGroup(t *testing.T) {
 	regex := NewFlux().NamedGroup("myGroup", "[A-zA-Z]+")
 	assertEquals(t, regex.String(), "(?P<myGroup>[A-zA-Z]+)")
-
-	compiledRegex := regex.MustCompile()
-	fmt.Println(compiledRegex.SubexpNames())
-	assertEquals(t, "", "(?P<myGroup>[A-zA-Z]+)")
-
 }
 
 func TestThen(t *testing.T) {
