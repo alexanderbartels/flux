@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/alexanderbartels/flux.svg?branch=master)](https://travis-ci.org/alexanderbartels/flux)
+[![API Documentation](https://godoc.org/github.com/golang/gddo?status.svg)](http://godoc.org/github.com/alexanderbartels/flux)
 ## Description
 Fluent Regular Expressions in golang is a port of https://github.com/selvinortiz/flux *by* [Selvin Ortiz](http://twitter.com/selvinortiz)
    
