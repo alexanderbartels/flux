@@ -55,6 +55,33 @@ func (f *Flux) Match(value string) (bool, error) {
 	return false, err
 }
 
+// returns a map with all named matches
+// experimental.... (Currently Only for groups added with #NamedGroup(name, rawGroup))
+func (f *Flux)NamedMatches(s string) (map[string]string, error) {
+	captures := make(map[string]string)
+
+	r, err := f.Compile()
+	if err != nil {
+		return captures, err
+	}
+
+	match := r.FindStringSubmatch(s)
+	if match == nil {
+		return captures, nil
+	}
+
+	// get all named captures
+	for i, name := range r.SubexpNames() {
+		// Ignore the whole regexp match and unnamed groups
+		if i == 0 || name == "" {
+			continue
+		}
+		captures[name] = match[i]
+	}
+
+	return captures, nil
+}
+
 // Clears all pattern components to create a fresh expression
 func (f *Flux) Clear() (*Flux) {
 	f.pattern   = f.pattern[0:0]

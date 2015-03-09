@@ -138,6 +138,71 @@ func TestMatch(t *testing.T) {
 	assertTrue(t, match) // now it should be true
 }
 
+func TestNamedMatches(t *testing.T) {
+	regex := NewFlux().StartOfLine().NamedGroup("foo", "[^\\?]*").Then("?").NamedGroup("bar", "[^\\?]*").EndOfLine()
+
+	match, err := regex.Match("hallo?welt")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("Hal?LO")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("H?a?l?L?O")
+	assertNoError(t, err)
+	assertTrue(t, !match) // match should be false
+}
+
+func TestInvalidNamedGroup(t *testing.T) {
+	regex := NewFlux().NamedGroup("foo", "????")
+	captures, err := regex.NamedMatches("")
+	assertTrue(t, err != nil)
+	assertTrue(t, len(captures) == 0)
+}
+
+func TestEmptyNamedGroup(t *testing.T) {
+	regex := NewFlux().NamedGroup("foo", "[^\\?]")
+	captures, err := regex.NamedMatches("?")
+	assertTrue(t, err == nil)
+	assertTrue(t, len(captures) == 0)
+}
+
+func TestNamedGroupWithLength(t *testing.T) {
+	regex := NewFlux().StartOfLine().NamedGroup("foo", "[^\\?]").Length(1, 5).EndOfLine()
+
+	assertEquals(t, regex.String(), "^(?P<foo>[^\\?]{1,5})$")
+
+	captures, e := regex.NamedMatches("Hallo")
+	assertTrue(t, e == nil)
+	assertTrue(t, len(captures) == 1)
+	assertEquals(t, captures["foo"], "Hallo")
+
+	match, err := regex.Match("h")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("ha")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hal")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hall")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hallo")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("halloo")
+	assertNoError(t, err)
+	assertTrue(t, !match) // match should be false
+}
+
 func TestPhoneMatchReplace(t *testing.T) {
 	phone := "6124240013"
 	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3,3).Maybe(")").Maybe(" ").Digits().Length(3,3).Maybe("-").Digits().Length(4,4).EndOfLine()
