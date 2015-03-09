@@ -14,11 +14,21 @@ type Flux struct {
 	prefixes  []string
 	suffixes  []string
 	modifiers []string
+
+	regex *regexp.Regexp
 }
 
 // regexp.Compile
 func (f *Flux) Compile() (*regexp.Regexp, error) {
-	return regexp.Compile(f.String())
+	if f.regex == nil {
+		if reg, err := regexp.Compile(f.String()); err != nil {
+			f.regex = nil
+			return nil, err
+		} else {
+			f.regex = reg
+		}
+	}
+	return f.regex, nil
 }
 
 // To reuse the compiled regexp
@@ -89,7 +99,7 @@ func (f *Flux) Clear() (*Flux) {
 	f.suffixes  = f.suffixes[0:0]
 	f.modifiers  = f.modifiers[0:0]
 
-	return f
+	return resetCachedRegex(f)
 }
 
 func (f *Flux) RawGroup(value string) (*Flux) {
@@ -251,33 +261,33 @@ func NewFlux() *Flux {
 
 func add(f *Flux, value, format string) (*Flux) {
 	f.pattern = append(f.pattern, fmt.Sprintf(format, regexp.QuoteMeta(value)))
-	return f
+	return resetCachedRegex(f)
 }
 
 func raw(f *Flux, value, format string) (*Flux) {
 	f.pattern = append(f.pattern, fmt.Sprintf(format, value))
-	return f
+	return resetCachedRegex(f)
 }
 
 func addPrefix(f *Flux, prefix string) (*Flux) {
 	if !stringInSlice(prefix, f.prefixes) {
 		f.prefixes = append(f.prefixes, strings.TrimSpace(prefix))
 	}
-	return f
+	return resetCachedRegex(f)
 }
 
 func addSuffix(f *Flux, suffix string) (*Flux) {
 	if !stringInSlice(suffix, f.suffixes) {
 		f.suffixes = append(f.suffixes, strings.TrimSpace(suffix))
 	}
-	return f
+	return resetCachedRegex(f)
 }
 
 func addModifier(f *Flux, modifier string) (*Flux) {
 	if !stringInSlice(modifier, f.modifiers) {
 		f.modifiers = append(f.modifiers, strings.TrimSpace(modifier))
 	}
-	return f
+	return resetCachedRegex(f)
 }
 
 func removeModifier(f *Flux, modifier string) (*Flux) {
@@ -286,7 +296,7 @@ func removeModifier(f *Flux, modifier string) (*Flux) {
 			f.modifiers = append(f.modifiers[:i], f.modifiers[i+1:]...)
 		}
 	}
-	return f
+	return resetCachedRegex(f)
 }
 
 func getLastSegmentKey(f *Flux) (int) {
@@ -304,7 +314,7 @@ func replaceQuantifierByKey(f *Flux, key int, replacement string) (*Flux) {
 
 	subject = removeQuantifier(f, subject)
 	f.pattern[key] = fmt.Sprintf(replacementPattern, subject, replacement);
-	return f
+	return resetCachedRegex(f)
 
 }
 
@@ -327,4 +337,9 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func resetCachedRegex(f *Flux) *Flux {
+	f.regex = nil
+	return f
 }
