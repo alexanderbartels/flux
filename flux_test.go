@@ -28,7 +28,6 @@ func TestAddPrefix(t *testing.T) {
 	assertEquals(t, regex.String(), "^")
 }
 
-
 func TestAddSuffix(t *testing.T) {
 	regex := NewFlux().EndOfLine()
 	assertEquals(t, regex.String(), "$")
@@ -93,7 +92,6 @@ func TestRange(t *testing.T) {
 	assertEquals(t, regex.String(), "([a-z0-9])")
 }
 
-
 func TestLength(t *testing.T) {
 	regex := NewFlux().Word().Length(1, 5)
 	assertEquals(t, regex.String(), "(\\w{1,5})")
@@ -138,20 +136,85 @@ func TestMatch(t *testing.T) {
 	assertTrue(t, match) // now it should be true
 }
 
+func TestNamedMatches(t *testing.T) {
+	regex := NewFlux().StartOfLine().NamedGroup("foo", "[^\\?]*").Then("?").NamedGroup("bar", "[^\\?]*").EndOfLine()
+
+	match, err := regex.Match("hallo?welt")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("Hal?LO")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("H?a?l?L?O")
+	assertNoError(t, err)
+	assertTrue(t, !match) // match should be false
+}
+
+func TestInvalidNamedGroup(t *testing.T) {
+	regex := NewFlux().NamedGroup("foo", "????")
+	captures, err := regex.NamedMatches("")
+	assertTrue(t, err != nil)
+	assertTrue(t, len(captures) == 0)
+}
+
+func TestEmptyNamedGroup(t *testing.T) {
+	regex := NewFlux().NamedGroup("foo", "[^\\?]")
+	captures, err := regex.NamedMatches("?")
+	assertTrue(t, err == nil)
+	assertTrue(t, len(captures) == 0)
+}
+
+func TestNamedGroupWithLength(t *testing.T) {
+	regex := NewFlux().StartOfLine().NamedGroup("foo", "[^\\?]").Length(1, 5).EndOfLine()
+
+	assertEquals(t, regex.String(), "^(?P<foo>[^\\?]{1,5})$")
+
+	captures, e := regex.NamedMatches("Hallo")
+	assertTrue(t, e == nil)
+	assertTrue(t, len(captures) == 1)
+	assertEquals(t, captures["foo"], "Hallo")
+
+	match, err := regex.Match("h")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("ha")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hal")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hall")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("hallo")
+	assertNoError(t, err)
+	assertTrue(t, match)
+
+	match, err = regex.Match("halloo")
+	assertNoError(t, err)
+	assertTrue(t, !match) // match should be false
+}
+
 func TestPhoneMatchReplace(t *testing.T) {
 	phone := "6124240013"
-	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3,3).Maybe(")").Maybe(" ").Digits().Length(3,3).Maybe("-").Digits().Length(4,4).EndOfLine()
+	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3, 3).Maybe(")").Maybe(" ").Digits().Length(3, 3).Maybe("-").Digits().Length(4, 4).EndOfLine()
 
 	match, err := regex.Match(phone)
 	assertNoError(t, err)
 	assertTrue(t, match)
 
-	repl :=  regex.Replace(phone, "($2) $5-$7" ) // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
-	assertEquals(t, repl, "(612) 424-0013" );
+	repl := regex.Replace(phone, "($2) $5-$7") // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
+	assertEquals(t, repl, "(612) 424-0013")
 }
 
 func TestUrlMatchAndReplace(t *testing.T) {
-	regex := NewFlux().StartOfLine().Find("http").Maybe("s").Then("://").Maybe("www.").AnythingBut(".").Either(".co", ".com", ".de").IgnoreCase().EndOfLine();
+	regex := NewFlux().StartOfLine().Find("http").Maybe("s").Then("://").Maybe("www.").AnythingBut(".").Either(".co", ".com", ".de").IgnoreCase().EndOfLine()
 	assertEquals(t, regex.String(), "(?i)^(http)(s)?(://)(www\\.)?([^\\.]*)(.co|.com|.de)$")
 
 	match, err := regex.Match("http://selvinortiz.com")
