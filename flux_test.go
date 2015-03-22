@@ -28,7 +28,6 @@ func TestAddPrefix(t *testing.T) {
 	assertEquals(t, regex.String(), "^")
 }
 
-
 func TestAddSuffix(t *testing.T) {
 	regex := NewFlux().EndOfLine()
 	assertEquals(t, regex.String(), "$")
@@ -92,7 +91,6 @@ func TestRange(t *testing.T) {
 	regex := NewFlux().Range("a", "z", "0", "9")
 	assertEquals(t, regex.String(), "([a-z0-9])")
 }
-
 
 func TestLength(t *testing.T) {
 	regex := NewFlux().Word().Length(1, 5)
@@ -205,18 +203,18 @@ func TestNamedGroupWithLength(t *testing.T) {
 
 func TestPhoneMatchReplace(t *testing.T) {
 	phone := "6124240013"
-	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3,3).Maybe(")").Maybe(" ").Digits().Length(3,3).Maybe("-").Digits().Length(4,4).EndOfLine()
+	regex := NewFlux().StartOfLine().Maybe("(").Digits().Length(3, 3).Maybe(")").Maybe(" ").Digits().Length(3, 3).Maybe("-").Digits().Length(4, 4).EndOfLine()
 
 	match, err := regex.Match(phone)
 	assertNoError(t, err)
 	assertTrue(t, match)
 
-	repl :=  regex.Replace(phone, "($2) $5-$7" ) // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
-	assertEquals(t, repl, "(612) 424-0013" );
+	repl := regex.Replace(phone, "($2) $5-$7") // $2 -> Steht für die 2. Gruppe Digits().Length(3,3), $5 für die 5. Grupper, usw.
+	assertEquals(t, repl, "(612) 424-0013")
 }
 
 func TestUrlMatchAndReplace(t *testing.T) {
-	regex := NewFlux().StartOfLine().Find("http").Maybe("s").Then("://").Maybe("www.").AnythingBut(".").Either(".co", ".com", ".de").IgnoreCase().EndOfLine();
+	regex := NewFlux().StartOfLine().Find("http").Maybe("s").Then("://").Maybe("www.").AnythingBut(".").Either(".co", ".com", ".de").IgnoreCase().EndOfLine()
 	assertEquals(t, regex.String(), "(?i)^(http)(s)?(://)(www\\.)?([^\\.]*)(.co|.com|.de)$")
 
 	match, err := regex.Match("http://selvinortiz.com")
