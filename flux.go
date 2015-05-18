@@ -201,10 +201,12 @@ func (f *Flux) AnythingBut(value string) *Flux {
 	return add(f, value, "([^%s]*)")
 }
 
+// Matches a new line (\n or \n\r)
 func (f *Flux) LineBreak() *Flux {
 	return raw(f, "(\\n|\\r\\n)", "%s")
 }
 
+// Matches a tab
 func (f *Flux) Tab() *Flux {
 	return raw(f, "(\\t)", "%s")
 }
